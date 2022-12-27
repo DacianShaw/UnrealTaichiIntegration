@@ -29,22 +29,22 @@
 <br/>
 
 #### 3.在UE编辑器中新建一个蓝图类BP_Pawn， 继承于上一步创建的c++类 SCharacter。打开BP_Pawn的编辑面板，设置人物的mesh，动画等资源。查看Capsule Component的Capsule Half Height属性， 将skeletalmesh的Location设置为[0, 0, - Capsule Half Height] (即调整mesh位置、朝向，使得mesh完全在胶囊体内)。添加弹簧臂，相机，调整角色视角。
-![image](img/BP_Pawn.png)
+![image](SceneBuild/img/BP_Pawn.png)
 
 <br/>
 
 #### 4.将蓝图类BP_Pawn拖入关卡中，在BP_Pawn实列的细节面板中，将Auto Possess Player 设置为Player0
-![image](img/setplayer.png)
+![image](SceneBuild/img/setplayer.png)
 
 <br/>
 
 #### 5.拖入几个球形的StaticMeshActor到关卡中，在BP_Pawn实列的细节面板中，找到Ball Msg List属性，将场景中的球体属性添加到该属性中。
-![image](img/setsceneball.png)
+![image](SceneBuild/img/setsceneball.png)
 
 <br/>
 
 #### 6.UE编辑器->编辑->项目设置->Engine->Input， 设置角色的输入
-![image](img/Input.png)
+![image](SceneBuild/img/Input.png)
 <br/>
 
 
