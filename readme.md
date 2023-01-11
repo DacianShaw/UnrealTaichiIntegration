@@ -65,12 +65,12 @@ const TMap<int32, FClothSimulData>& USkeletalMeshComponent::GetCurrentClothingDa
 <br>
 
 - 3)调整brush的radius属性，将整个mesh全部刷满布料, 点击上方的Deactivate Cloth Paint选项卡,退出布料编辑模式。
- ![image](SceneBuild/img/BrushCloth.png)
+ ![image](SceneBuild/img/brushCloth.png)
 
  <br>
 
  - 4)右键mesh点击 Apply Clothing Data选项,选中编辑好的布料数据，应用。
- ![image](SceneBuild/img/ApplyCloth.png)
+ ![image](SceneBuild/img/applyCloth.png)
 
 <br/>
 
