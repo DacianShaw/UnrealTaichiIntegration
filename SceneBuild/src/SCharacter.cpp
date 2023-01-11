@@ -5,62 +5,32 @@
 #include "GameFramework/Character.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/Engine.h"
+#include "Engine/World.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "ChaosCloth/ChaosClothingSimulationFactory.h"
+#include "ChaosCloth/ChaosClothingSimulation.h"
 
 ASCharacter::ASCharacter()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	IsWind = false;
+	NumSize = 32;
+	NumParticles = NumSize * NumSize;
+	QuadSize = ClothSize / NumSize;
 }
 
-// Called when the game starts or when spawned
 void ASCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// Call Taichi Interface, add ball in scene
+	
+	// 调用Taichi接口, 添加场景中的静态球体
 	for (auto el_BallMsg : this->BallMsgList)
 	{
-		//TODO
 		// TaichiMoudel::AddSceneBall(el_BallMsg.Radius, el_BallMsg.Center);
 	}
+	QuadSize = ClothSize / NumSize;
 
 	InitClothingPosition();
-}
-
-// Called to bind functionality to input
-void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	PlayerInputComponent->BindAxis("MoveForward", this, &ASCharacter::MoveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &ASCharacter::MoveRight);
-	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	PlayerInputComponent->BindAction("OnOffWindpower", IE_Pressed, this, &ASCharacter::OnOffWindpower);
-}
-
-
-void ASCharacter::MoveForward(float Value)
-{
-	FRotator ControlRot = GetControlRotation();
-	ControlRot.Pitch = 0.0f;
-	ControlRot.Roll = 0.0f;
-
-	AddMovementInput(ControlRot.Vector(), Value);
-}
-
-
-void ASCharacter::MoveRight(float Value)
-{
-	FRotator ControlRot = GetControlRotation();
-	ControlRot.Pitch = 0.0f;
-	ControlRot.Roll = 0.0f;
-
-	FVector RightVector = FRotationMatrix(ControlRot).GetScaledAxis(EAxis::Y);
-
-	AddMovementInput(RightVector, Value);
 }
 
 float ASCharacter::rand_P(float min, float max)
@@ -68,7 +38,7 @@ float ASCharacter::rand_P(float min, float max)
 	return (min + (max - min) * (rand() / (float)RAND_MAX));
 }
 
-
+// 控制风力
 void ASCharacter::OnOffWindpower()
 {
 	if (this->IsWind == false)
@@ -81,15 +51,14 @@ void ASCharacter::OnOffWindpower()
 	else
 	{
 		this->IsWind = false;
-		this->windPower = FVector(0,0,0);
+		this->windPower = FVector(0, 0, 0);
 	}
 
-	//TODO
-	//  call Taichi Interface, change wind power
+	//  调用Taihci接口， 控制风力
 	// TaichiMoudel::updateWindPower(this->windPower);
 }
 
-
+// 计算角色碰撞盒体顶点位置
 TArray<FVector> ASCharacter::computeVertices(FVector location, float radius, float halfHeight)
 {
 	float x = location.X;
@@ -114,6 +83,7 @@ TArray<FVector> ASCharacter::computeVertices(FVector location, float radius, flo
 	return VerticesArray;
 }
 
+// 调试显示
 void ASCharacter::ShowHelpMsg()
 {
 	for (auto el_BallMsg : this->BallMsgList)
@@ -122,11 +92,10 @@ void ASCharacter::ShowHelpMsg()
 		GEngine->AddOnScreenDebugMessage
 		(
 			-1,
-			0, 			//	��ʾ��ʱ��/��
-			FColor::White, 	//	��ʾ����ɫ
-			outputMessage1	//	��ʾ����Ϣ
+			0, 			//	显示的时间/秒
+			FColor::White, 	//	显示的颜色
+			outputMessage1	//	显示的信息
 		);
-		// TaichiMoudel::AddSceneBall(el_BallMsg.Radius, el_BallMsg.Center);
 	}
 
 	FString outputMessage2;
@@ -143,35 +112,82 @@ void ASCharacter::ShowHelpMsg()
 	GEngine->AddOnScreenDebugMessage
 	(
 		-1,
-		0, 			//	��ʾ��ʱ��/��
-		FColor::Blue, 	//	��ʾ����ɫ
-		outputMessage2	//	��ʾ����Ϣ
+		0, 			//	显示的时间/秒
+		FColor::Blue, 	//	显示的颜色
+		outputMessage2	//	显示的信息
 	);
 }
 
-// TODO ����Taichi�ӿڣ� ��ʼ��cloth����λ��
+// TODO 调用Taichi接口， 初始化cloth顶点位置
 void ASCharacter::InitClothingPosition()
 {
-	TArray<FVector> InitPosition;
-	// TaichiMoudel::InitClothingPosition(InitPosition);
+	int8 RowIndex = 0;
+	int8 ColIndex = 0;
+	int32 CountNum = 0;
 
-	return;
+	TArray<FVector3f> positionArray;
+	positionArray.Init(FVector3f::ZeroVector, NumParticles);
+
+	//  初始化cloth顶点位置
+	for (auto& pos : positionArray)
+	{
+		RowIndex = CountNum / NumSize;
+		ColIndex = CountNum % NumSize;
+		pos = FVector3f(RowIndex * QuadSize, ColIndex * QuadSize, 0);
+		CountNum += 1;
+	}
+
+	TArray<FVector3f> NormalsArray;
+	NormalsArray.Init(FVector3f(0.0, 0.0, -1.0), NumParticles);
+
+	TaichiClothSimulData = new FClothSimulData();
+	TaichiClothSimulData->LODIndex = 0;
+	TaichiClothSimulData->Transform = FTransform(FQuat4d::Identity, FVector3d(this->ClothLocation), FVector3d(1, 1, 1));
+	TaichiClothSimulData->Normals = NormalsArray; 
+	TaichiClothSimulData->Positions = positionArray;
+
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	ClothActor = Cast<ASkeletalMeshActor>(GetWorld()->SpawnActor<AActor>(ClothActorClass, ClothLocation, FRotator::ZeroRotator, Params));
+	ClothMeshComponent = ClothActor->GetSkeletalMeshComponent();
+	ClothMeshComponent->IsTaichiSimulation = true;
+	TaichiClothSimulData->ComponentRelativeTransform = FTransform(FQuat4d::Identity, FVector3d::ZeroVector, FVector3d(1, 1, 1) / ClothActor->GetActorScale3D());
+
+	TMap<int32, FClothSimulData>* TaichiSimulationData =  new TMap<int32, FClothSimulData>;
+	TaichiSimulationData->Add(0, *TaichiClothSimulData);
+	ClothMeshComponent->CurrentSimulationData_Taichi = *TaichiSimulationData;
+
+
+	{
+		TArray<FVector3f> InitPosition;
+		InitPosition.Init(FVector3f::ZeroVector, NumParticles);
+
+		for (int i =0;i<NumParticles;i++)
+		{
+			InitPosition[i] = positionArray[i] + FVector3f(ClothLocation);
+		}
+
+		// 调用Taihci接口，初始化布料位置， 传入顶点的世界坐标， 单位cm
+		// TaichiMoudel::InitClothingPosition(InitPosition);
+	}
 }
 
-// TODO ����cloth����λ�� ��TICK()�е���
-void ASCharacter::UpdateClothingSkeletalMesh(TArray<FVector> NewPosition)
+// TODO 更新cloth顶点位置 在TICK()中调用
+void ASCharacter::UpdateClothingSkeletalMesh(TArray<FVector3f> NewPosition)
 {
-
-
-
-	return;
+	
+	for (int i = 0; i < 1024; i++)
+	{
+		NewPosition[i] -= FVector3f(ClothLocation);   //转换为相对坐标
+	}
+	TaichiClothSimulData->Positions = NewPosition;
+	ClothMeshComponent->CurrentSimulationData_Taichi.Add(0, *TaichiClothSimulData);
 }
 
 // Called every frame
 void ASCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 
 	float half_height = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	float radius = GetCapsuleComponent()->GetScaledCapsuleRadius();
@@ -181,22 +197,74 @@ void ASCharacter::Tick(float DeltaTime)
 	DrawDebugBox(GetWorld(), location, FVector(radius, radius, half_height), FColor::Green);
 
 	for (auto pos : verticesPos)
-	{
-		// UE_LOG(LogTemp, Log, TEXT("HealthChange:: %f, %f, %f"), pos.X, pos.Y, pos.Z);
-
+	{	
 		DrawDebugSphere(GetWorld(), pos, 3, 6, FColor::Red, false, 0);
 	}
 
-	// call Taichi Interface, �����������ײ����Ϣ
+	// 调用Taichi接口, 传入人物的碰撞盒信息
 	// TaichiMoudel::updateCharacterCollisionBox(TArray<FVector>  verticesPos);
 
-	TArray<FVector> NewPosition;
-	// new pos return from Taichi Interface
-	// NewPosition = TaichiMoudel::takeStep(int stepNum);
+	TArray<FVector3f> NewPosition;
 
+	{ //实现taichi接口后，注释此部分内容 208 - 231
+		NewPosition = TaichiClothSimulData->Positions;
+		if (NewPosition.IsEmpty())
+		{
+			int8 RowIndex = 0;
+			int8 ColIndex = 0;
+			int32 CountNum = 0;
+
+			TArray<FVector3f> positionArray;
+			positionArray.Init(FVector3f::ZeroVector, NumParticles);
+
+			for (auto& pos : positionArray)
+			{
+				RowIndex = CountNum / NumSize;
+				ColIndex = CountNum % NumSize;
+				pos = FVector3f(RowIndex * QuadSize, ColIndex * QuadSize, 0);
+				CountNum += 1;
+			}
+
+			NewPosition = positionArray;
+		}
+		for (auto& pos : NewPosition) { pos += FVector3f(ClothLocation); }
+		for (auto& pos : NewPosition) { pos.Z -= 1.0/5.0; }
+	}
+
+	// 调用Taichi接口,获取更新后的位置
+	// NewPosition = TaichiMoudel::takeStep(int stepNum);
 
 	this->UpdateClothingSkeletalMesh(NewPosition);
 
-
 	this->ShowHelpMsg();
+}
+
+
+void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	PlayerInputComponent->BindAxis("MoveForward", this, &ASCharacter::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &ASCharacter::MoveRight);
+	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("OnOffWindpower", IE_Pressed, this, &ASCharacter::OnOffWindpower);
+}
+
+void ASCharacter::MoveForward(float Value)
+{
+	FRotator ControlRot = GetControlRotation();
+	ControlRot.Pitch = 0.0f;
+	ControlRot.Roll = 0.0f;
+	AddMovementInput(ControlRot.Vector(), Value);
+}
+
+void ASCharacter::MoveRight(float Value)
+{
+	FRotator ControlRot = GetControlRotation();
+	ControlRot.Pitch = 0.0f;
+	ControlRot.Roll = 0.0f;
+	FVector RightVector = FRotationMatrix(ControlRot).GetScaledAxis(EAxis::Y);
+	AddMovementInput(RightVector, Value);
 }
