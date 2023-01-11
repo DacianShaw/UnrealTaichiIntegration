@@ -18,7 +18,7 @@
 - 1)InitClothingPosition()函数进行布料位置初始化，传入Taichi接口
 - 2)在TICK()调用Taichi接口获取新的位置，进而在UpdateClothingSkeletalMesh()函数更新布料位置
 - 3)布料采用skeletalmesh, 需要修改引擎中的代码 SkeletalMeshComponent.h 和 SkeletalMeshComponentPhysics.cpp。
-	- 布料系统在yourGitRepoDir\UnrealEngine\Engine\Source\Runtime\Engine\Private\SkeletalRenderGPUSkin.cpp文件中2320行的UpdateClothSimulationData()函数调用 SkeletalMeshComponentPhysics.cpp中的GetCurrentClothingData_AnyThread()函数，获取模拟的布料数据，进行更新Mesh的顶点位置，因此将GetCurrentClothingData_AnyThread()函数的返回值更改为Taichi模拟的数据即可。
+	- 布料系统在yourGitRepoDir\UnrealEngine\Engine\Source\Runtime\Engine\Private\SkeletalRenderGPUSkin.cpp文件中2320行的UpdateClothSimulationData()函数调用 SkeletalMeshComponentPhysics.cpp中的GetCurrentClothingData_AnyThread()函数，获取模拟的布料数据，进一步更新SkeletalMesh的顶点位置，因此将GetCurrentClothingData_AnyThread()函数的返回值更改为Taichi模拟的数据即可。
 
 <BR>
 
