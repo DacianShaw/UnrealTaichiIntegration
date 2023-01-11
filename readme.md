@@ -17,7 +17,9 @@
 #### 4.skeletalmesh显示布料
 - 1)InitClothingPosition()函数进行布料位置初始化，传入Taichi接口
 - 2)在TICK()调用Taichi接口获取新的位置，进而在UpdateClothingSkeletalMesh()函数更新布料位置
-- 3)布料采用skeletalmesh, 需要找修改引擎中的代码
+- 3)布料采用skeletalmesh, 需要修改引擎中的代码 SkeletalMeshComponent.h 和 SkeletalMeshComponentPhysics.cpp。
+	- 布料系统在yourGitRepoDir\UnrealEngine\Engine\Source\Runtime\Engine\Private\SkeletalRenderGPUSkin.cpp文件中2320行的UpdateClothSimulationData()函数调用 SkeletalMeshComponentPhysics.cpp中的GetCurrentClothingData_AnyThread()函数，获取模拟的布料数据，进行更新Mesh的顶点位置，因此将GetCurrentClothingData_AnyThread()函数的返回值更改为Taichi模拟的数据即可。
+
 <BR>
 
 ## 场景代码使用
@@ -69,7 +71,7 @@ const TMap<int32, FClothSimulData>& USkeletalMeshComponent::GetCurrentClothingDa
 
  <br>
 
- - 4)右键mesh点击 Apply Clothing Data选项,选中编辑好的布料数据，应用。
+ - 4)右键mesh点击 Apply Clothing Data选项,选中编辑好的布料数据，保存。
  ![image](SceneBuild/img/applyCloth.png)
 
 <br/>
@@ -87,13 +89,13 @@ const TMap<int32, FClothSimulData>& USkeletalMeshComponent::GetCurrentClothingDa
 
 <br/>
 
-#### 7.编译c++代码，运行项目，在UE编辑器中新建一个蓝图类BP_Pawn， 继承于上一步创建的c++类 SCharacter。打开BP_Pawn的编辑面板，设置人物的mesh，动画等资源。查看Capsule Component的Capsule Half Height属性， 将skeletalmesh的Location设置为[0, 0, - Capsule Half Height] (即调整mesh位置、朝向，使得mesh完全在胶囊体内)。添加弹簧臂，相机，调整角色视角。
+#### 7.编译c++代码，运行项目，在UE编辑器中新建一个蓝图类BP_Pawn， 继承于上一步创建的c++类 SCharacter。打开BP_Pawn的编辑面板，设置人物的mesh，动画等资源。查看Capsule Component的Capsule Half Height属性， 将skeletalmesh的Location设置为[0, 0, - Capsule Half Height] (即调整mesh位置、朝向，使得mesh完全在胶囊体内)。添加弹簧臂，相机，调整角色视角
 ![image](SceneBuild/img/BP_Pawn.png)
 
 <br/>
 
 
-#### 8.在BP_Pawn的编辑面板,设置BP_Pawn的cloth属性
+#### 8.在BP_Pawn的编辑面板,设置BP_Pawn的cloth属性， ClothActorClass属性设置为创建的蓝图类 BP_ClothActor， ClothLocation为布料位置，ClothSize为布料边长
 ![image](SceneBuild/img/setCloth.png)
 
 <br>
