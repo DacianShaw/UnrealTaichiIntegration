@@ -117,3 +117,6 @@ const TMap<int32, FClothSimulData>& USkeletalMeshComponent::GetCurrentClothingDa
 
 #### 12.保存，运行关卡, 演示如下(测试SkeletalMesh顶点变化，非布料模拟效果)
 ![image](https://github.com/XiaoyuXiao1998/UnrealTaichiIntegration/blob/feature-scenebuild/SceneBuild/img/testCloth.gif)
+
+## TODO
+- 调用Taichi接口，跑通布料模拟的流程。
